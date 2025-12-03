@@ -1,19 +1,14 @@
 package com.swe.ux.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.swe.cloud.datastructures.CloudResponse;
 import com.swe.cloud.datastructures.Entity;
 import com.swe.cloud.datastructures.TimeRange;
 import com.swe.cloud.functionlibrary.CloudFunctionLibrary;
-import com.swe.controller.RPC;
-import com.swe.controller.RPCinterface.AbstractRPC;
-import com.swe.controller.serialize.DataSerializer;
 import com.swe.ux.analytics.NetworkHeartbeatMonitor;
 import com.swe.ux.model.analytics.DashboardModel;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 /**
@@ -25,7 +20,8 @@ public class DashboardService {
     /** Default number of users logged out. */
     private static final int DEFAULT_USERS_LOGGED_OUT = 0;
     /** Default meeting summary message. */
-    private static final String DEFAULT_SUMMARY = "We will surface historical insights once your meetings generate activity.";
+    private static final String DEFAULT_SUMMARY =
+            "We will surface historical insights once your meetings generate activity.";
     /** Cloud module name. */
     private static final String DASHBOARD_MODULE = "UX";
     /** Cloud table name. */
@@ -33,23 +29,13 @@ public class DashboardService {
     /** Cloud type identifier. */
     private static final String DASHBOARD_TYPE = "Summary";
 
-    AbstractRPC rpc;
-
     /** Fetch function used to obtain dashboard data. */
     private final Function<Entity, CompletableFuture<CloudResponse>> fetchFunction;
 
     /**
-     * Creates a new DashboardService using the default RPC singleton and real cloud library.
-     */
-    public DashboardService() {
-        this(RPC.getInstance());
-    }
-
-    /**
      * Creates a new DashboardService using the real cloud library.
      */
-    public DashboardService(AbstractRPC rpc) {
-        this.rpc = rpc;
+    public DashboardService() {
         Function<Entity, CompletableFuture<CloudResponse>> function = null;
         try {
             final CloudFunctionLibrary library = new CloudFunctionLibrary();
@@ -152,14 +138,7 @@ public class DashboardService {
     }
 
     private DashboardModel buildDefaultModel() {
-        String data = "No cloud data returned yet.";
-        try {
-            byte[] b = rpc.call("core/AiSummary", new byte[0]).get();
-            data = DataSerializer.deserialize(b, String.class);
-        } catch (InterruptedException | JsonProcessingException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
         return new DashboardModel(DEFAULT_USERS_PRESENT, DEFAULT_USERS_LOGGED_OUT,
-                DEFAULT_SUMMARY, data);
+                DEFAULT_SUMMARY, "No cloud data returned yet.");
     }
 }

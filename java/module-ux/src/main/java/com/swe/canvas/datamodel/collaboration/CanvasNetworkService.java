@@ -13,9 +13,9 @@ package com.swe.canvas.datamodel.collaboration;
 import com.swe.canvas.datamodel.serialization.JsonUtils;
 import com.swe.controller.RPC;
 import com.swe.controller.RPCinterface.AbstractRPC;
+import com.swe.controller.serialize.DataSerializer;
 import com.swe.networking.ClientNode;
 import com.swe.networking.NetworkFront;
-import java.nio.charset.StandardCharsets;
 
 /**
  * NetworkService implementation that relies on the networking module + RPC bridge.
@@ -90,12 +90,17 @@ public class CanvasNetworkService implements NetworkService {
         //        + message.getMessageType() + ", bytes=" + serializedMessage.length());
 
         if (this.rpc != null) {
-            this.rpc.call("canvas:sendToHost", serializedMessage.getBytes(StandardCharsets.UTF_8))
-                    .whenComplete((resp, err) -> {
-                        if (err != null) {
-                            System.err.println("[CanvasNetworkService] sendMessageToHost failed: " + err.getMessage());
-                        }
-                    });
+            try {
+                final byte[] data = DataSerializer.serialize(serializedMessage);
+                this.rpc.call("canvas:sendToHost", data)
+                        .whenComplete((resp, err) -> {
+                            if (err != null) {
+                                System.err.println("[CanvasNetworkService] sendMessageToHost failed: " + err.getMessage());
+                            }
+                        });
+            } catch (final Exception e) {
+                System.err.println("[CanvasNetworkService] Serialization failed: " + e.getMessage());
+            }
         } else {
             System.err.println("[CanvasNetworkService] RPC instance is null; cannot send to host.");
         }
@@ -108,12 +113,17 @@ public class CanvasNetworkService implements NetworkService {
         //        + message.getMessageType() + ", bytes=" + serializedMessage.length());
 
         if (this.rpc != null) {
-            this.rpc.call("canvas:broadcast", serializedMessage.getBytes())
-                    .whenComplete((resp, err) -> {
-                        if (err != null) {
-                            System.err.println("[CanvasNetworkService] broadcastMessage failed: " + err.getMessage());
-                        }
-                    });
+            try {
+                final byte[] data = DataSerializer.serialize(serializedMessage);
+                this.rpc.call("canvas:broadcast", data)
+                        .whenComplete((resp, err) -> {
+                            if (err != null) {
+                                System.err.println("[CanvasNetworkService] broadcastMessage failed: " + err.getMessage());
+                            }
+                        });
+            } catch (final Exception e) {
+                System.err.println("[CanvasNetworkService] Serialization failed: " + e.getMessage());
+            }
         } else {
             System.err.println("[CanvasNetworkService] RPC instance is null; cannot broadcast.");
         }
@@ -143,14 +153,19 @@ public class CanvasNetworkService implements NetworkService {
         System.out.println("[CanvasNetworkService] sendToClient called for " + targetClientId);
 
         if (this.rpc != null) {
-            this.rpc.call("canvas:sendToClient", payload.getBytes(StandardCharsets.UTF_8))
-                    .whenComplete((resp, err) -> {
-                        if (err != null) {
-                            System.err.println("[CanvasNetworkService] sendToClient failed: " + err.getMessage());
-                        } else {
-                            System.out.println("[CanvasNetworkService] sendToClient delivered to " + targetClientId);
-                        }
-                    });
+            try {
+                final byte[] data = DataSerializer.serialize(payload);
+                this.rpc.call("canvas:sendToClient", data)
+                        .whenComplete((resp, err) -> {
+                            if (err != null) {
+                                System.err.println("[CanvasNetworkService] sendToClient failed: " + err.getMessage());
+                            } else {
+                                System.out.println("[CanvasNetworkService] sendToClient delivered to " + targetClientId);
+                            }
+                        });
+            } catch (final Exception e) {
+                System.err.println("[CanvasNetworkService] Serialization failed: " + e.getMessage());
+            }
         } else {
             System.err.println("[CanvasNetworkService] RPC instance is null; cannot send to client.");
         }

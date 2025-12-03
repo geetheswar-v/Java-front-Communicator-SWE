@@ -6,6 +6,7 @@ import com.swe.cloud.datastructures.CloudResponse;
 import com.swe.cloud.datastructures.Entity;
 import com.swe.cloud.datastructures.TimeRange;
 import com.swe.cloud.functionlibrary.CloudFunctionLibrary;
+import com.swe.controller.RPC;
 import com.swe.controller.RPCinterface.AbstractRPC;
 import com.swe.controller.serialize.DataSerializer;
 import com.swe.ux.analytics.NetworkHeartbeatMonitor;
@@ -38,10 +39,10 @@ public class DashboardService {
     private final Function<Entity, CompletableFuture<CloudResponse>> fetchFunction;
 
     /**
-     * Creates a new DashboardService using the default RPC and real cloud library.
+     * Creates a new DashboardService using the default RPC singleton and real cloud library.
      */
     public DashboardService() {
-        this((AbstractRPC) null);
+        this(RPC.getInstance());
     }
 
     /**

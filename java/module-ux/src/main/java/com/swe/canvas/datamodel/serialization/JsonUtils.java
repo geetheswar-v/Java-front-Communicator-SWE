@@ -152,6 +152,26 @@ public final class JsonUtils {
     }
 
     /**
+     * Extracts a long value associated with a key, with a default value if not found.
+     * Useful for optional fields like LastModified that .NET doesn't send.
+     *
+     * @param content      The JSON content string.
+     * @param key          The key to search for.
+     * @param defaultValue The default value to return if key is not found.
+     * @return The long value, or defaultValue if not found.
+     */
+    public static long extractLongOrDefault(final String content, final String key,
+                                            final long defaultValue) {
+        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"")
+                + "\\s*:\\s*(\\d+)");
+        final Matcher matcher = pattern.matcher(content);
+        if (matcher.find()) {
+            return Long.parseLong(matcher.group(GROUP_ONE));
+        }
+        return defaultValue;
+    }
+
+    /**
      * Extracts a boolean value associated with a key.
      *
      * @param content The JSON content string.

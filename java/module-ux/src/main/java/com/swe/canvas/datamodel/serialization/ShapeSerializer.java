@@ -110,6 +110,7 @@ public final class ShapeSerializer {
 
     /**
      * Deserializes a JSON string into a ShapeState object.
+     * Supports both .NET format (no LastModified) and Java format (with LastModified).
      *
      * @param json The JSON string.
      * @return The ShapeState object.
@@ -132,7 +133,11 @@ public final class ShapeSerializer {
             final String createdBy = JsonUtils.extractString(content, "CreatedBy");
             final String lastModBy = JsonUtils.extractString(content, "LastModifiedBy");
             final boolean isDeleted = JsonUtils.extractBoolean(content, "IsDeleted");
-            final long lastModified = JsonUtils.extractLong(content, "LastModified");
+            // LastModified is optional (.NET doesn't send it), use extractLong which returns 0L if not found
+            long lastModified = JsonUtils.extractLong(content, "LastModified");
+            if (lastModified == 0L) {
+                lastModified = System.currentTimeMillis();
+            }
             final List<Point> points = JsonUtils.extractPoints(content);
 
             if (shapeId == null || typeName == null || createdBy == null
@@ -140,7 +145,8 @@ public final class ShapeSerializer {
                 throw new SerializationException("Missing crucial shape field.");
             }
 
-            final ShapeType shapeType = ShapeType.valueOf(typeName);
+            // Handle both UPPERCASE (both platforms) ShapeType
+            final ShapeType shapeType = ShapeType.valueOf(typeName.toUpperCase());
             final Color color = JsonUtils.hexToColor(colorHex);
             final ShapeId id = new ShapeId(shapeId);
 

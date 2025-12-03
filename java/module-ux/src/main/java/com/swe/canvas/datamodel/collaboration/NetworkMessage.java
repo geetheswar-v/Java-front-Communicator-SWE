@@ -10,7 +10,7 @@
 package com.swe.canvas.datamodel.collaboration;
 
 import com.swe.canvas.datamodel.serialization.JsonUtils;
-import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A wrapper for data sent over the network.
@@ -89,25 +89,27 @@ public class NetworkMessage {
 
     /**
      * Serializes this NetworkMessage into a JSON string.
+     * Matches .NET CanvasSerializer.SerializeNetworkMessage format.
      *
      * @return A JSON representation of this message.
      */
     public String serialize() {
         final StringBuilder sb = new StringBuilder();
         sb.append("{");
-        sb.append(JsonUtils.jsonEscape("type")).append(":")
-            .append(JsonUtils.jsonEscape(messageType.toString()));
+        // Use "MessageType" with PascalCase enum value to match .NET
+        sb.append(JsonUtils.jsonEscape("MessageType")).append(":")
+            .append(JsonUtils.jsonEscape(toPascalCase(messageType.toString())));
 
-        // Encode byte array as Base64 string if present
+        // Serialize action as nested JSON object (not Base64) to match .NET
         if (serializedAction != null) {
-            final String actionBase64 = Base64.getEncoder().encodeToString(serializedAction);
-            sb.append(",").append(JsonUtils.jsonEscape("action")).append(":")
-                .append(JsonUtils.jsonEscape(actionBase64));
+            final String actionJson = new String(serializedAction, StandardCharsets.UTF_8);
+            sb.append(",").append(JsonUtils.jsonEscape("Action")).append(":")
+                .append(actionJson);  // Direct JSON, not escaped string
         }
 
         // Append Payload string if present
         if (payload != null) {
-            sb.append(",").append(JsonUtils.jsonEscape("payload")).append(":")
+            sb.append(",").append(JsonUtils.jsonEscape("Payload")).append(":")
                 .append(JsonUtils.jsonEscape(payload));
         }
 
@@ -116,7 +118,19 @@ public class NetworkMessage {
     }
 
     /**
+     * Converts UPPERCASE enum name to PascalCase to match .NET format.
+     */
+    private static String toPascalCase(final String uppercase) {
+        if (uppercase == null || uppercase.isEmpty()) {
+            return uppercase;
+        }
+        return uppercase.substring(0, 1).toUpperCase()
+            + uppercase.substring(1).toLowerCase();
+    }
+
+    /**
      * Deserializes a JSON string back into a NetworkMessage.
+     * Supports both .NET format (PascalCase) and Java format (lowercase) for compatibility.
      *
      * @param json The JSON string to deserialize.
      * @return The NetworkMessage object, or null if deserialization fails.
@@ -127,29 +141,35 @@ public class NetworkMessage {
         }
 
         try {
-            // 1. Extract Type
-            final String typeStr = JsonUtils.extractString(json, "type");
+            // 1. Extract Type - try both "MessageType" (.NET) and "type" (Java) keys
+            String typeStr = JsonUtils.extractString(json, "MessageType");
+            if (typeStr == null) {
+                typeStr = JsonUtils.extractString(json, "type");
+            }
             if (typeStr == null) {
                 return null;
             }
-            final MessageType type = MessageType.valueOf(typeStr);
+            // Handle both PascalCase (.NET) and UPPERCASE (Java) enum values
+            final MessageType type = MessageType.valueOf(typeStr.toUpperCase());
 
-            // 2. Extract Action (Base64)
-            final String actionBase64 = JsonUtils.extractString(json, "action");
-            final byte[] actionBytes;
-            if (actionBase64 != null) {
-                actionBytes = Base64.getDecoder().decode(actionBase64);
-            } else {
-                actionBytes = null;
+            // 2. Extract Action - try "Action" (.NET nested JSON) first
+            byte[] actionBytes = null;
+            final String actionJson = JsonUtils.extractNestedJson(json, "Action");
+            if (actionJson != null && !"null".equals(actionJson)) {
+                actionBytes = actionJson.getBytes(StandardCharsets.UTF_8);
             }
 
-            // 3. Extract Payload
-            final String payloadStr = JsonUtils.extractString(json, "payload");
+            // 3. Extract Payload - try both "Payload" (.NET) and "payload" (Java)
+            String payloadStr = JsonUtils.extractString(json, "Payload");
+            if (payloadStr == null) {
+                payloadStr = JsonUtils.extractString(json, "payload");
+            }
 
             return new NetworkMessage(type, actionBytes, payloadStr);
 
         } catch (final Exception e) {
             System.err.println("NetworkMessage deserialization failed: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }

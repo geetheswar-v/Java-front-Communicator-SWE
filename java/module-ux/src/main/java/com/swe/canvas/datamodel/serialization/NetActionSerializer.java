@@ -36,6 +36,7 @@ public final class NetActionSerializer {
      * Manually serializes an Action object, including nested ShapeState objects.
      * Fields included: actionId, actionType, prevState, newState (and others from
      * the base class).
+     * Matches .NET CanvasSerializer.SerializeActionManual format.
      *
      * @param action The action to serialize.
      * @return A JSON string.
@@ -48,11 +49,11 @@ public final class NetActionSerializer {
         final StringBuilder sb = new StringBuilder();
         sb.append("{");
 
-        // 1. Core Metadata Fields
+        // 1. Core Metadata Fields - use PascalCase ActionType to match .NET
         sb.append(JsonUtils.jsonEscape("ActionId")).append(":")
                 .append(JsonUtils.jsonEscape(action.getActionId())).append(",");
         sb.append(JsonUtils.jsonEscape("ActionType")).append(":")
-                .append(JsonUtils.jsonEscape(action.getActionType().toString())).append(",");
+                .append(JsonUtils.jsonEscape(toPascalCase(action.getActionType().toString()))).append(",");
 
         // 2. PrevState (nested ShapeState JSON)
         appendState(sb, "Prev", action.getPrevState());
@@ -63,6 +64,17 @@ public final class NetActionSerializer {
 
         sb.append("}");
         return sb.toString();
+    }
+
+    /**
+     * Converts UPPERCASE enum name to PascalCase to match .NET format.
+     */
+    private static String toPascalCase(final String uppercase) {
+        if (uppercase == null || uppercase.isEmpty()) {
+            return uppercase;
+        }
+        return uppercase.substring(0, 1).toUpperCase()
+            + uppercase.substring(1).toLowerCase();
     }
 
     /**
@@ -85,6 +97,7 @@ public final class NetActionSerializer {
 
     /**
      * Manually deserializes a JSON string back into a concrete Action object.
+     * Supports both .NET (PascalCase) and Java (UPPERCASE) ActionType values.
      *
      * <p>IMPORTANT: This method uses Action subclass constructors for correct object creation.</p>
      *
@@ -105,7 +118,8 @@ public final class NetActionSerializer {
 
             validateMetadata(actionId, typeStr);
 
-            final ActionType actionType = ActionType.valueOf(typeStr);
+            // Handle both PascalCase (.NET) and UPPERCASE (Java) ActionType
+            final ActionType actionType = ActionType.valueOf(typeStr.toUpperCase());
 
             // 2. Extract nested ShapeState objects
             final ShapeState prevState = extractState(content, "Prev");

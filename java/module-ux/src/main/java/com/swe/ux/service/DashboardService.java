@@ -38,6 +38,13 @@ public class DashboardService {
     private final Function<Entity, CompletableFuture<CloudResponse>> fetchFunction;
 
     /**
+     * Creates a new DashboardService using the default RPC and real cloud library.
+     */
+    public DashboardService() {
+        this((AbstractRPC) null);
+    }
+
+    /**
      * Creates a new DashboardService using the real cloud library.
      */
     public DashboardService(AbstractRPC rpc) {
